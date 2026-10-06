@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="kioszk.css">
+<title>Rendelő kioszk</title>
+</head>
+<body>
+<div id="app">
+
+<section class="screen on" id="welcome">
+  <div class="big">🍔</div>
+  <h1>Üdv! Rendelj itt</h1>
+  <p>Érintsd meg a választáshoz</p>
+  <div class="opts">
+    <button class="opt" data-mode="Helyben fogyasztom"><span>🍽️</span>Itt eszem</button>
+    <button class="opt" data-mode="Elvitelre"><span>🛍️</span>Elvitelre</button>
+  </div>
+</section>
+
+<section class="screen" id="menu">
+  <header><span id="modeLbl">Menü</span><button id="cancel">Mégse</button></header>
+  <div class="body"><nav id="nav"></nav><main id="grid"></main></div>
+  <footer>
+    <div class="tot">Összesen<b id="tot">0 Ft</b></div>
+    <button class="cta" id="toCart" disabled>Kosár (0)</button>
+  </footer>
+</section>
+
+<section class="screen" id="cart">
+  <header><span>Rendelésed</span></header>
+  <div id="cartlist"></div>
+  <footer>
+    <button class="ghost" id="back">← Vissza</button>
+    <div class="tot"><b id="tot2">0 Ft</b></div>
+    <button class="cta" id="pay">Fizetés 💳</button>
+  </footer>
+</section>
+
+<section class="screen" id="done">
+  <div class="e">✅</div>
+  <h2>Köszönjük a rendelést!</h2>
+  <p>A rendelésszámod</p>
+  <div class="num" id="num">101</div>
+  <p>Kérjük, figyeld a kijelzőt!</p>
+  <button class="cta" id="again" style="margin-top:20px">Új rendelés</button>
+</section>
+
+</div>
+<script>
+const MENU=[
+{c:"Menük",e:"🍟",i:[["Dupla húsos menü","🍔","Hamburger, közepes sült, üdítő",3190],["Csirke menü","🍗","Ropogós csirke, közepes sült, üdítő",2890],["Sajtburger menü","🧀","Sajtburger, közepes sült, üdítő",2490],["Halburger menü","🐟","Halburger, közepes sült, üdítő",2690]]},
+{c:"Burgerek",e:"🍔",i:[["Dupla húsos","🍔","Két húspogácsa, szósz, saláta",2190],["Sajtburger","🧀","Klasszikus, olvadt sajttal",890],["Csirkeburger","🐔","Ropogós bundában",1490],["Vega burger","🥬","Növényi pogácsa",1690]]},
+{c:"Csirke",e:"🍗",i:[["Nuggets 6 db","🍗","Szósszal",1390],["Nuggets 9 db","🍗","Szósszal",1890],["Csirkeszárny 4 db","🔥","Csípős bundában",1690],["Wrap","🌯","Csirke, saláta, szósz",1590]]},
+{c:"Köretek",e:"🍟",i:[["Sült krumpli (K)","🍟","Közepes",790],["Sült krumpli (N)","🍟","Nagy",990],["Salátatál","🥗","Friss zöldségek",1190],["Almaszeletek","🍎","Csomagolva",590]]},
+{c:"Italok",e:"🥤",i:[["Cola","🥤","0,4 l",650],["Narancslé","🧃","0,3 l",690],["Víz","💧","0,5 l",490],["Kávé","☕","Frissen főzve",590],["Turmix","🥛","Eper",990]]},
+{c:"Desszert",e:"🍦",i:[["Fagylalt","🍦","Vanília, öntettel",790],["Fánk","🍩","Cukormázas",590],["Muffin","🧁","Csokis",690],["Pite","🥧","Almás, ropogós",690]]}
+];
+const $=s=>document.querySelector(s);
+const cart={};let cat=0,mode="",order=100;
+const fmt=n=>n.toLocaleString("hu-HU")+" Ft";
+const show=id=>{document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id))};
+const key=(c,i)=>c+"-"+i;
+function totals(){let n=0,t=0;for(const k in cart){const[c,i]=k.split("-");n+=cart[k];t+=cart[k]*MENU[c].i[i][3]}return{n,t}}
+function nav(){$("#nav").innerHTML=MENU.map((m,i)=>`<button class="${i==cat?"on":""}" data-c="${i}"><span>${m.e}</span>${m.c}</button>`).join("")}
+function grid(){$("#grid").innerHTML=MENU[cat].i.map((p,i)=>{const q=cart[key(cat,i)]||0;return`<button class="item" data-i="${i}">${q?`<div class="q">${q}</div>`:""}<div class="e">${p[1]}</div><b>${p[0]}</b><small>${p[2]}</small><div class="p">${fmt(p[3])}</div></button>`}).join("")}
+function foot(){const{n,t}=totals();$("#tot").textContent=fmt(t);$("#tot2").textContent=fmt(t);$("#toCart").textContent=`Kosár (${n})`;$("#toCart").disabled=!n;$("#pay").disabled=!n}
+function list(){const ks=Object.keys(cart);$("#cartlist").innerHTML=ks.length?ks.map(k=>{const[c,i]=k.split("-");const p=MENU[c].i[i];return`<div class="row"><div class="e">${p[1]}</div><div class="n">${p[0]}<small>${fmt(p[3]*cart[k])}</small></div><div class="step"><button data-k="${k}" data-d="-1">−</button><b>${cart[k]}</b><button data-k="${k}" data-d="1">+</button></div></div>`}).join(""):`<div class="empty">A kosár üres</div>`;foot()}
+document.addEventListener("click",e=>{
+ const t=e.target.closest("button");if(!t)return;
+ if(t.dataset.mode){mode=t.dataset.mode;$("#modeLbl").textContent=mode;nav();grid();foot();show("menu")}
+ else if(t.dataset.c!==undefined){cat=+t.dataset.c;nav();grid();$("#grid").scrollTop=0}
+ else if(t.classList.contains("item")){const k=key(cat,t.dataset.i);cart[k]=(cart[k]||0)+1;grid();foot()}
+ else if(t.dataset.k){cart[t.dataset.k]+=+t.dataset.d;if(cart[t.dataset.k]<=0)delete cart[t.dataset.k];list()}
+ else if(t.id==="toCart"){list();show("cart")}
+ else if(t.id==="back"){grid();foot();show("menu")}
+ else if(t.id==="cancel"||t.id==="again"){for(const k in cart)delete cart[k];show("welcome")}
+ else if(t.id==="pay"&&totals().n){order++;$("#num").textContent=order;for(const k in cart)delete cart[k];show("done")}
+});
+</script>
+</body>
+</html>
